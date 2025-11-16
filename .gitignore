@@ -1,0 +1,37 @@
+# Arquivos de teste
+test_*.txt
+test_*.py
+resultado.txt
+
+# Arquivos de configuração do VS Code
+.vscode/
+settings.json
+
+# Arquivos Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Ambientes virtuais
+venv/
+ENV/
+env/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Backups
+*.backup
+*.bak
+*~
+
+# Arquivos temporários do Klipper
+*.save
+klippy.log

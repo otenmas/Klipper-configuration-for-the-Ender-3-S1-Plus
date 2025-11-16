@@ -1,6 +1,0 @@
-{
-  "jinja2.lintingEnabled": true,
-  "[jinja2]": {
-    "editor.formatOnSave": false
-  }
-}
