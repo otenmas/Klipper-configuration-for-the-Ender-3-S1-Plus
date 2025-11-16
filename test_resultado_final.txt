@@ -1,0 +1,172 @@
+
+======================================================================
+[gcode_macro START_PRINT]
+======================================================================
+
+; PARAMETROS CONFIGURÁVEIS - Recebidos do slicer
+  ; posição inicial X da purga
+  ; posição inicial Y da purga
+  ; comprimento da linha de purga
+  ; altura da linha (primeira camada)
+  ; largura de linha definida no slicer
+  ; temperatura da cama
+  ; temperatura do bico
+  ; tipo de filamento
+  ; quantidade de linhas de purga
+  ; altura extra para segurança
+  ; offset Z da sonda (Klipper fornece em runtime)
+  ; altura final de purga
+  ; diametro do bico
+  ; velocidade de extrusao mm/min
+  ; fator de espacamento entre linhas 10% extra
+  ; espacamento calculado
+  ; area de filamento 1.75mm² (πr²)
+  ; extrusao calculada
+
+M117 Iniciando impressao
+{action_respond_info('Iniciando impressao')}
+
+; PRE-AQUECIMENTO INICIAL
+M117 Aquecendo mesa
+{action_respond_info('Aquecendo mesa para ' ~ bed|string ~ 'C')}
+M104 S150  ; aquecer bico ate 150C para homing seguro
+M140 S{bed}  ; iniciar aquecimento da mesa
+M190 S{bed}  ; aguardar mesa atingir temperatura
+M104 S150  ; manter hotend aquecido
+
+; HOMING E NIVELAMENTO
+M117 Executando homing
+{action_respond_info('Executando G28 com mesa quente')}
+G28  ; home total
+G90  ; coordenadas absolutas
+M83  ; extrusao relativa ESSENCIAL
+BED_MESH_CLEAR  ; limpar malha anterior
+BED_MESH_PROFILE LOAD=default  ; carregar malha salva
+
+; PRE-AQUECIMENTO INTERMEDIARIO para acelerar
+M104 S170  ; pre-aquecimento rapido a 170C
+M117 Aquecendo bico final
+{action_respond_info('Aquecendo bico para ' ~ extruder|string ~ 'C')}
+
+; AQUECIMENTO FINAL DO HOTEND
+M104 S{extruder}  ; iniciar aquecimento final do bico
+M109 S{extruder}  ; aguardar bico atingir temperatura final
+
+; PURGA LATERAL (IDA + VOLTA)
+M117 Iniciando purga
+{action_respond_info('Iniciando purga lateral')}
+G92 E0  ; zerar contador de extrusao
+G90  ; modo absoluto
+G1 Z{z_height} F3000  ; subir para altura de purga
+G1 X{x} Y{y} F6000  ; ir para posicao inicial de purga
+
+  ; repetir linhas de purga
+  ; calcular posicao X desta repeticao
+{action_respond_info('Purga ' ~ i+1|string ~ '/' ~ rep|string)}
+G1 X{cur_x} Y{y} F3000  ; deslocar X para linha atual
+G1 E2 F300  ; pressurizar bico antes de iniciar
+G1 Y{y + length} E{Ecalc|round(2)} F{feedrate}  ; ida da purga com extrusao
+G1 Y{y} E{Ecalc|round(2)} F{feedrate}  ; volta da purga com extrusao
+G1 E-0.8 F1800  ; pequena retracao
+  ; repetir linhas de purga
+  ; calcular posicao X desta repeticao
+{action_respond_info('Purga ' ~ i+1|string ~ '/' ~ rep|string)}
+G1 X{cur_x} Y{y} F3000  ; deslocar X para linha atual
+G1 E2 F300  ; pressurizar bico antes de iniciar
+G1 Y{y + length} E{Ecalc|round(2)} F{feedrate}  ; ida da purga com extrusao
+G1 Y{y} E{Ecalc|round(2)} F{feedrate}  ; volta da purga com extrusao
+G1 E-0.8 F1800  ; pequena retracao
+  ; repetir linhas de purga
+  ; calcular posicao X desta repeticao
+{action_respond_info('Purga ' ~ i+1|string ~ '/' ~ rep|string)}
+G1 X{cur_x} Y{y} F3000  ; deslocar X para linha atual
+G1 E2 F300  ; pressurizar bico antes de iniciar
+G1 Y{y + length} E{Ecalc|round(2)} F{feedrate}  ; ida da purga com extrusao
+G1 Y{y} E{Ecalc|round(2)} F{feedrate}  ; volta da purga com extrusao
+G1 E-0.8 F1800  ; pequena retracao
+
+
+; FINALIZACAO DA PURGA
+M117 Finalizando purga
+{action_respond_info('Finalizando purga')}
+G1 E-1.0 F1800  ; retracao antes de mover
+G92 E0  ; zerar extrusor apos retracao
+G1 Z{z_height + 2} F1500  ; subir para evitar raspar
+G1 X5 Y5 F3000  ; ir para canto frontal
+
+; PREPARAR VARIÁVEIS PARA END_PRINT
+SET_GCODE_VARIABLE MACRO=END_PRINT VARIABLE=ultimo_material VALUE={material}
+SET_GCODE_VARIABLE MACRO=END_PRINT VARIABLE=ultimo_nozzle VALUE={nozzle}
+SET_GCODE_VARIABLE MACRO=END_PRINT VARIABLE=ultima_largura VALUE={width}
+
+M117 Impressao iniciada
+{action_respond_info('Impressao iniciada com material ' ~ material)}
+
+
+
+======================================================================
+[gcode_macro END_PRINT]
+======================================================================
+
+❌ UndefinedError em END_PRINT (variável ausente):
+Traceback (most recent call last):
+  File "G:\Meu Drive\Projetos\3d Print\klipper\config\run_custom.py", line 138, in main
+    out = render_template(template_text, params)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Meu Drive\Projetos\3d Print\klipper\config\run_custom.py", line 95, in render_template
+    return tpl.render(**ctx)
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\samne\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "C:\Users\samne\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "<template>", line 17, in top-level template code
+  File "C:\Users\samne\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\jinja2\environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'printer' is undefined
+
+
+
+======================================================================
+[gcode_macro parafusos]
+======================================================================
+
+G28 ; home all axis and restore leveling
+BED_SCREWS_ADJUST
+
+
+======================================================================
+[gcode_macro parafusos_auto]
+======================================================================
+
+G28 ; home all axis and restore leveling
+SCREWS_TILT_CALCULATE
+
+
+======================================================================
+[gcode_macro z_offset]
+======================================================================
+
+G28 ; home all axis and restore leveling
+PROBE_CALIBRATE
+
+
+
+======================================================================
+[gcode_macro M600]
+======================================================================
+
+
+
+
+SAVE_GCODE_STATE NAME=M600_state
+PAUSE
+G91
+G1 E-.8 F2700
+G1 Z{Z}
+G90
+G1 X{X} Y{Y} F3000
+G91
+G1 E-50 F1000
+RESTORE_GCODE_STATE NAME=M600_state
